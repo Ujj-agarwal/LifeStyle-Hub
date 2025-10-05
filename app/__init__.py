@@ -10,7 +10,7 @@ def create_app(config_class=Config):
 
     # --- Initialize CORS ---
     # For testing: allow all origins
-    CORS(app)
+    CORS(app, origins=["https://life-style-hub-qqvj.vercel.app/"])
 
     # For production: restrict to your Vercel frontend URL
     # CORS(app, origins=["https://your-vercel-app.vercel.app"])
