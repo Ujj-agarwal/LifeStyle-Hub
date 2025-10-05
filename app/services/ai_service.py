@@ -1,73 +1,102 @@
 import requests
 import json
 from flask import current_app
-from app.models.workout import Workout, WorkoutType
-from typing import List
 
-def generate_workout_suggestion(workout_type: WorkoutType, user_history: List[Workout]) -> dict:
-   
-    api_key = current_app.config.get('GEMINI_API_KEY')
+def get_gemini_key():
+    """
+    Safely retrieves the Gemini API key either from current_app (inside a Flask context)
+    or directly from the config file (outside request context).
+    """
+    try:
+        api_key = current_app.config.get('GEMINI_API_KEY')
+    except RuntimeError:
+        # current_app not active (e.g., called outside Flask route)
+        from config import Config
+        api_key = Config.GEMINI_API_KEY
+    return api_key
 
-    # Fallback message if the API key hasn't been configured in config.py
-    if not api_key or api_key == 'AIzaSyD9PVTUkKPvV8ctqEyVFMNY8f0UVWzZGOY':
-        return {
-            "title": "API Key Not Configured",
-            "exercises": [{"name": "Please add your Gemini API key to config.py", "details": ""}],
-            "notes": "You can obtain a free key from Google AI Studio."
-        }
 
-    # Construct a detailed prompt, providing context and specifying the desired JSON output format.
-    # This is a key part of "prompt engineering".
-    history_summary = f"The user has recently completed {len(user_history)} workouts."
-    if user_history:
-        # Get the most recent workout for context
-        last_workout = user_history[-1]
-        history_summary += f" Their last session was a '{last_workout.workout_type.value}' workout."
-    
-    prompt = (
-        f"You are a helpful fitness assistant. Based on the following information, suggest a new '{workout_type.value}' workout. "
-        f"The user's recent history: {history_summary}. "
-        "Provide 3-4 exercises. "
-        "Your entire response MUST be a single, minified JSON object with three keys: "
-        "'title' (string), 'exercises' (a list of objects, where each object has 'name' and 'details' strings), "
-        "and 'notes' (a string)."
-    )
+def call_gemini_api(prompt):
+    """Calls the Gemini API with better error handling and visibility."""
+    api_key = get_gemini_key()
 
-    print("--- SENDING PROMPT TO GEMINI API ---")
-    print(prompt)
-    print("------------------------------------")
-    
-    # Gemini API endpoint for the gemini-pro model
+    if not api_key or not api_key.startswith("AIza"):
+        raise ValueError("Gemini API key is not configured in config.py.")
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
     try:
-        # Make the POST request to the API with a timeout
-        response = requests.post(url, headers=headers, json=payload, timeout=20)
-        response.raise_for_status()  # Raises an exception for bad status codes (4xx or 5xx)
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
 
-        response_json = response.json()
-        
-        # Navigate through the API response structure to find the text content
-        candidate = response_json.get('candidates', [{}])[0]
-        content = candidate.get('content', {}).get('parts', [{}])[0]
-        json_text = content.get('text', '{}')
-        
-        # The AI's response is a JSON string, so we need to parse it into a Python dictionary
-        suggestion = json.loads(json_text)
-        
-        return suggestion
+        # 👇 handle Gemini errors clearly
+        if "error" in data:
+            err = data["error"]
+            raise RuntimeError(f"Gemini API error: {err.get('message', 'Unknown error')}")
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling Gemini API: {e}")
-        return {"title": "Error", "exercises": [], "notes": "Could not connect to the AI service. Please check your network connection."}
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing Gemini API response: {e}")
-        # This can happen if the AI doesn't return valid JSON
-        return {"title": "Error", "exercises": [], "notes": "Received an invalid or unexpected response from the AI service."}
+        # 👇 safer parsing (some responses use 'candidates' differently)
+        candidates = data.get("candidates")
+        if not candidates:
+            print("Unexpected Gemini response:", data)
+            raise RuntimeError("No valid candidates returned from Gemini API.")
 
+        content = candidates[0].get("content", {})
+        parts = content.get("parts", [])
+        if not parts or "text" not in parts[0]:
+            print("Malformed Gemini response:", data)
+            raise RuntimeError("Gemini response missing expected text.")
+
+        return parts[0]["text"].strip()
+
+    except requests.RequestException as e:
+        print("Request error:", e)
+        raise RuntimeError("Network or connection error with Gemini API.")
+    except Exception as e:
+        print("Gemini API call failed:", e)
+        raise RuntimeError(str(e))
+
+
+
+def generate_workout_suggestion(workout_type, user_history):
+    """Generates a workout suggestion based on user history."""
+    history_str = ", ".join(
+        [f"{w.workout_type.name} ({w.duration_minutes} mins)" for w in user_history[-5:]]
+    )
+    prompt = f"""
+    As a fitness coach, suggest a simple 3-4 exercise workout for a '{workout_type}' session.
+    The user's recent workouts are: {history_str}.
+    Please provide the response as a minified JSON object with keys:
+    "title" (string), "exercises" (an array of objects with "name" and "details" strings), and "notes" (string).
+    Example: {{"title":"Strength Workout","exercises":[{{"name":"Squats","details":"3 sets of 10"}},...],"notes":"Focus on form."}}
+    """
+    response_text = call_gemini_api(prompt)
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        return {"title": "Workout Plan", "exercises": [], "notes": response_text}
+
+
+def generate_shopping_list(ingredients):
+    """Generates a shopping list from a recipe's ingredients."""
+    prompt = f"Format the following ingredients into a simple, categorized shopping list with weights or volumes: {ingredients}. Respond in plain text."
+    return call_gemini_api(prompt)
+
+
+def calculate_recipe_calories(recipe_name, ingredients):
+    """Estimates calories for a recipe."""
+    prompt = f"Estimate the total calories for a recipe named '{recipe_name}' with these ingredients: {ingredients}. Provide only the estimated number and a brief note, like 'Approx. 450 calories per serving'."
+    return call_gemini_api(prompt)
+
+
+def calculate_workout_calories(workout_type, duration_minutes, intensity):
+    """Estimates calories burned during a workout using AI."""
+    prompt = f"Estimate the calories burned for a '{workout_type}' workout lasting {duration_minutes} minutes with an intensity level of {intensity} out of 5. Provide only an integer number as the result."
+    response_text = call_gemini_api(prompt)
+    try:
+        return int(''.join(filter(str.isdigit, response_text)))
+    except (ValueError, TypeError):
+        # Fallback to a basic formula if AI response is not a valid number
+        return round(duration_minutes * intensity * 3.5)
