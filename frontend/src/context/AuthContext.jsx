@@ -1,51 +1,58 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode"; // fixed import
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
-      setToken(storedToken);
-      try {
-        const decoded = jwtDecode(storedToken);
-        setUser(decoded);
-      } catch (err) {
-        console.error("Invalid token", err);
-        localStorage.removeItem("token");
+      const decoded = decodeToken(storedToken);
+      if (decoded && decoded.exp * 1000 > Date.now()) {
+        setToken(storedToken);
+        scheduleLogout(decoded.exp);
+      } else {
+        logout();
       }
     }
   }, []);
 
-  const login = (token) => {
-    setToken(token);
-    localStorage.setItem("token", token);
+  const decodeToken = (t) => {
     try {
-      const decoded = jwtDecode(token);
-      setUser(decoded);
+      return jwtDecode(t);
     } catch (err) {
-      console.error("Invalid token", err);
+      console.error("Invalid token:", err);
+      return null;
     }
+  };
+
+  const scheduleLogout = (exp) => {
+    const timeout = exp * 1000 - Date.now();
+    if (timeout > 0) {
+      setTimeout(() => logout(), timeout);
+    }
+  };
+
+  const login = (newToken) => {
+    setToken(newToken);
+    localStorage.setItem("token", newToken);
+    const decoded = decodeToken(newToken);
+    if (decoded?.exp) scheduleLogout(decoded.exp);
     navigate("/");
   };
 
   const logout = () => {
     setToken(null);
-    setUser(null);
     localStorage.removeItem("token");
     navigate("/login");
   };
 
   const value = {
     token,
-    user,
     login,
     logout,
     isAuthenticated: !!token,
