@@ -17,17 +17,25 @@ class Workout(db.Model):
     workout_type = db.Column(db.Enum(WorkoutType), nullable=False)
     goal_achieved = db.Column(db.Boolean, default=False, nullable=False)
     duration_minutes = db.Column(db.Integer, nullable=False)
-    intensity = db.Column(db.Integer, nullable=False)
+    intensity = db.Column(db.Integer, nullable=False)  # Scale: 1–5
     
     # Foreign key to link a workout to a user
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     @property
     def calories_burned(self):
-        """Calculated property, not stored in the database."""
+        """Calculate calories burned: duration × intensity × type factor."""
         if self.duration_minutes is None or self.intensity is None:
             return 0
-        return round((self.duration_minutes * self.intensity * 3.5) / 10)
+
+        type_factor = {
+            "Strength": 6.0,
+            "Cardio": 8.0,
+            "Yoga": 4.0
+        }.get(self.workout_type.value, 5.0)  # default factor if unknown
+
+        calories = self.duration_minutes * self.intensity * type_factor
+        return round(calories)
 
     def to_dict(self):
         """Helper function to serialize the object to a dictionary."""
