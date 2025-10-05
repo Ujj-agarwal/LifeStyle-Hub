@@ -3,28 +3,22 @@ import api from "../../services/api";
 import { toast } from "react-toastify";
 
 export default function RecipesPage() {
-    // State for the list of recipes
     const [recipes, setRecipes] = useState([]);
-    // State to manage loading indicators
     const [isLoading, setIsLoading] = useState(true);
-    // State to toggle the "Add Recipe" form visibility
     const [isAdding, setIsAdding] = useState(false);
     
-    // State for all the new recipe form fields
     const [newName, setNewName] = useState("");
-    const [newCuisine, setNewCuisine] = useState("ITALIAN"); // Default enum value
+    const [newCuisine, setNewCuisine] = useState("ITALIAN");
     const [newIsVegetarian, setNewIsVegetarian] = useState(false);
     const [newPrepTime, setNewPrepTime] = useState("");
     const [newCookTime, setNewCookTime] = useState("");
     const [newIngredients, setNewIngredients] = useState("");
 
-    // Function to fetch recipes from the backend
     const fetchRecipes = async () => {
         setIsLoading(true);
         try {
-            // The backend sends a paginated response, so we access the 'recipes' array
             const response = await api.get("/recipes");
-            setRecipes(response.data.recipes || []); // Ensure recipes is always an array
+            setRecipes(response.data.recipes || []);
         } catch (error) {
             toast.error(error.response?.data?.msg || "Failed to fetch recipes.");
         } finally {
@@ -32,17 +26,14 @@ export default function RecipesPage() {
         }
     };
 
-    // Fetch recipes when the component first loads
     useEffect(() => {
         fetchRecipes();
     }, []);
 
-    // Handler for the "Add Recipe" form submission
     const handleAddRecipe = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            // Send all the required fields to the backend
             await api.post("/recipes", {
                 recipe_name: newName,
                 cuisine_type: newCuisine,
@@ -52,8 +43,6 @@ export default function RecipesPage() {
                 ingredients: newIngredients,
             });
             toast.success("Recipe added successfully!");
-            
-            // Reset form fields and hide the form
             setNewName("");
             setNewCuisine("ITALIAN");
             setNewIsVegetarian(false);
@@ -61,8 +50,6 @@ export default function RecipesPage() {
             setNewCookTime("");
             setNewIngredients("");
             setIsAdding(false);
-            
-            // Refresh the list with the new recipe
             fetchRecipes();
         } catch (error) {
             toast.error(error.response?.data?.msg || "Failed to add recipe.");
@@ -71,13 +58,12 @@ export default function RecipesPage() {
         }
     };
     
-    // Handler for deleting a recipe
     const handleDeleteRecipe = async (recipeId) => {
         if (window.confirm("Are you sure you want to delete this recipe?")) {
             try {
                 await api.delete(`/recipes/${recipeId}`);
                 toast.success("Recipe deleted successfully!");
-                fetchRecipes(); // Refresh the list
+                fetchRecipes();
             } catch (error) {
                 toast.error(error.response?.data?.msg || "Failed to delete recipe.");
             }
@@ -97,10 +83,8 @@ export default function RecipesPage() {
                     </button>
                 </div>
                 
-                {/* Collapsible "Add Recipe" Form */}
                 {isAdding && (
                     <form onSubmit={handleAddRecipe} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
-                        {/* Column 1 */}
                         <div className="space-y-4">
                             <input type="text" placeholder="Recipe Name" value={newName} onChange={(e) => setNewName(e.target.value)} required className="w-full border px-3 py-2 rounded" />
                             <select value={newCuisine} onChange={(e) => setNewCuisine(e.target.value)} className="w-full border px-3 py-2 rounded">
@@ -113,7 +97,6 @@ export default function RecipesPage() {
                                 <label htmlFor="is-veg">Is Vegetarian?</label>
                             </div>
                         </div>
-                        {/* Column 2 */}
                         <div className="space-y-4">
                              <input type="number" placeholder="Prep Time (mins)" value={newPrepTime} onChange={(e) => setNewPrepTime(e.target.value)} required className="w-full border px-3 py-2 rounded" />
                              <input type="number" placeholder="Cook Time (mins)" value={newCookTime} onChange={(e) => setNewCookTime(e.target.value)} required className="w-full border px-3 py-2 rounded" />
@@ -127,7 +110,6 @@ export default function RecipesPage() {
                     </form>
                 )}
 
-                {/* List of Existing Recipes */}
                 {isLoading && recipes.length === 0 ? (
                     <p className="text-center text-gray-500">Loading recipes...</p>
                 ) : recipes.length > 0 ? (
@@ -137,7 +119,9 @@ export default function RecipesPage() {
                                 <div>
                                     <h3 className="text-lg font-semibold">{recipe.recipe_name}</h3>
                                     <p className="text-sm text-gray-600">Cuisine: {recipe.cuisine_type}</p>
-                                    {/* Displaying the calculated field */}
+                                    <p className="text-sm text-gray-600">
+                                        Vegetarian: {recipe.is_vegetarian ? "Yes" : "No"}
+                                    </p>
                                     <p className="text-sm text-gray-500">
                                         Total Time: {recipe.total_cooking_time} minutes
                                     </p>
@@ -158,4 +142,3 @@ export default function RecipesPage() {
         </div>
     );
 }
-
