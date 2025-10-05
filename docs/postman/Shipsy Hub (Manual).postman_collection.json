@@ -1,0 +1,258 @@
+{
+	"info": {
+		"_postman_id": "91aaef61-5924-4f5a-b84b-7d0136a12614",
+		"name": "Shipsy Hub (Manual)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49024520",
+		"_collection_link": "https://ujjwalagarwal-co22a7-73-7142494.postman.co/workspace/2K22-CO-481-UJJWAL-AGARWAL's-Wo~e93da64f-9588-46db-8351-d18c3b847b29/collection/49024520-91aaef61-5924-4f5a-b84b-7d0136a12614?action=share&source=collection_link&creator=49024520"
+	},
+	"item": [
+		{
+			"name": "Register User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"testuser\",\r\n    \"password\": \"password123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/auth/register",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// This script runs after the server sends a response.\r",
+							"try {\r",
+							"    const response = pm.response.json();\r",
+							"    if (response && response.access_token) {\r",
+							"        // If an access_token is found, save it to the 'access_token'\r",
+							"        // variable in our active \"Shipsy Dev\" environment.\r",
+							"        pm.environment.set(\"access_token\", response.access_token);\r",
+							"        console.log(\"Access token saved successfully!\");\r",
+							"    } else {\r",
+							"        console.log(\"Access token not found in the response.\");\r",
+							"    }\r",
+							"} catch (e) {\r",
+							"    console.error(\"Could not parse the response JSON.\", e);\r",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"testuser\",\r\n    \"password\": \"password123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/auth/login",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Test Auth (Manual)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5000/workouts/test-auth",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"workouts",
+						"test-auth"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Workout",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"notes\": \"Manual test successful, ready for Phase 3.\",\r\n    \"workout_type\": \"CARDIO\",\r\n    \"goal_achieved\": true,\r\n    \"duration_minutes\": 30,\r\n    \"intensity\": 3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/workouts",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"workouts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create new recipe",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"recipe_name\": \"Classic Tomato Soup\",\r\n    \"cuisine_type\": \"ITALIAN\",\r\n    \"is_vegetarian\": true,\r\n    \"prep_time_minutes\": 10,\r\n    \"cook_time_minutes\": 25,\r\n    \"ingredients\": \"Tomatoes, Onion, Garlic, Vegetable Broth, Basil\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/recipes",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"recipes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Workout Suggestion",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"workout_type\": \"STRENGTH\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/workouts/suggest",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"workouts",
+						"suggest"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
