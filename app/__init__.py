@@ -40,4 +40,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
+        from .keep_alive import start_keep_alive
+    start_keep_alive()
+
     return app
